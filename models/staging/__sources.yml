@@ -22,3 +22,18 @@ sources:
         description: One record per SKU for items sold in stores
       - name: raw_supplies
         description: One record per supply per SKU of items sold in stores
+
+  # For incremental_copy.sql
+  - name: raw_incremental
+    schema: main # DuckDB default schema
+    tables:
+      - name: source_data
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+          - name: value
+          - name: created_at
+            tests:
+              - not_null

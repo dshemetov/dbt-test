@@ -1,5 +1,167 @@
 # 🥪 The Jaffle Shop 🦘
 
+## Delphi Testing Notes
+
+### Setup
+
+To setup, run
+
+```sh
+# Install uv https://github.com/astral-sh/uv
+uv sync
+
+# Test that dbt works
+uv run dbt --version
+
+# Update dbt packages
+uv run dbt deps
+
+# Setup AWS credentials in your .env file (optional)
+S3_ACCESS_KEY_ID=<your-access-key-id>
+S3_SECRET_ACCESS_KEY=<your-secret-access-key>
+```
+
+### Documentation and DAG Visualization
+
+```sh
+# Generate and view documentation
+# See the DAG by clicking the blue circle in the bottom right
+uv run dbt docs generate
+uv run dbt docs serve
+```
+
+### Loading Data and Building the Project
+
+An example of how to load data and build the project.
+
+```sh
+# Load the data from './jaffle-data'
+uv run dbt seed
+
+# Build the project
+uv run dbt build
+```
+
+As part of the build, the SQL is compiled and the models are materialized.
+You can find the compiled SQL in the `target` folder.
+
+### Viewing the Data
+
+Building the project will create a `delphi_test.duckdb` file in the root of the project and populate it with the tables defined in this project.
+You can view the data in the database with the following commands:
+
+```sh
+uv run dbt show --select customers --limit 5
+uv run dbt show --select orders --limit 5
+```
+
+List the available objects that can be viewed
+
+```sh
+uv run dbt list
+```
+
+You can also query the database directly using the duckdb CLI.
+You can get the self-contained duckdb executable for the CLI [here](https://duckdb.org/docs/installation/).
+On Linux, it's as simple as
+
+```sh
+curl --fail --location --progress-bar --output duckdb_cli-linux-amd64.zip https://github.com/duckdb/duckdb/releases/download/v1.1.3/duckdb_cli-linux-amd64.zip && unzip duckdb_cli-linux-amd64.zip
+```
+
+Now you can query the local database with the following command:
+
+```sh
+./duckdb delphi_test.duckdb -c "SELECT * FROM customers;"
+```
+
+### dbt Packages
+
+This project uses the following dbt packages:
+
+- [dbt-labs/dbt_utils](https://hub.getdbt.com/dbt-labs/dbt_utils/latest/)
+- [calogica/dbt_date](https://hub.getdbt.com/calogica/dbt_date/latest/)
+- [dbt-labs/dbt-audit-helper](https://github.com/dbt-labs/dbt-audit-helper)
+
+dbt packages are defined in the `packages.yml` file.
+I looked through the available packages and these seem to be the most useful.
+
+### Testing the Data
+
+The packages above include conditions in the model definitions that test the data.
+You can run the tests with the following command:
+
+```sh
+uv run dbt test
+```
+
+- See for instance `models/staging/stg_locations.yml` for an example of a data unit test.
+- See for instance `models/staging/stg_customers.yml` for an example of a data test.
+
+### dbt Structure Overview
+
+- Raw data - data as it comes from the source (in this repo, `jaffle-data` seeds, but in a real-world scenario, this would be data from a data warehouse)
+- Staging - data that has been cleaned and transformed (in this repo, `stg_customers`, `stg_orders`, etc.)
+- Marts - data that has been aggregated and rolled up (in this repo, `customers`, `orders`, etc.)
+- Views - data that has been rolled up and aggregated (in this repo, `customers_view`, `orders_view`, etc.)
+
+### Incremental Models
+
+Incremental models will only perform operations on rows that are new or have changed since the last time the model was run.
+This is a way to make models more efficient.
+
+An example can be found in `models/staging/incremental_copy.sql`:
+
+```sh
+# Load some synthetic data into the `source_data` table in DuckDB
+uv run python source_data.py --create-source-data
+
+# Show what the model will do with this data
+uv run dbt show --select incremental_copy
+
+# Run the model
+uv run dbt run --select incremental_copy
+
+# Run the model again (should see no rows updated)
+uv run dbt run --select incremental_copy
+
+# Update the source data with more rows
+uv run python source_data.py --add-data
+
+# Show what the model will do again (should see more rows)
+uv run dbt show --select incremental_copy
+
+# Run the model again
+uv run dbt run --select incremental_copy
+```
+
+This can be extended to handle more complex cases, such as updating a row if the value changes, or deleting a row if it is no longer present in the source.
+
+### Snapshots TODO
+
+Snapshots are a way to capture the state of a table at a point in time.
+
+### Using the Semantic Layer
+
+Use the built-in metrics with MetricFlow (part of the Semantic Layer, a way to systematize and organize metrics)
+
+```sh
+# List available metrics (see e.g. bottom of `customers.yml` for examples of how these are defined)
+uv run mf list metrics
+
+# Query the metrics
+uv run mf query --metrics count_lifetime_orders --group-by customer
+```
+
+### Reading Suggestions
+
+- [Best Practices for Structuring dbt Projects](https://docs.getdbt.com/best-practices/how-we-structure/1-guide-overview)
+- [dbt Commands](https://docs.getdbt.com/reference/dbt-commands)
+- [What are configs?](https://docs.getdbt.com/reference/configs-and-properties)
+- [What are incremental models?](https://docs.getdbt.com/docs/build/incremental-models-overview)
+
+## Template Notes
+
 This is a sandbox project for exploring the basic functionality and latest features of dbt. It's based on a fictional restaurant called the Jaffle Shop that serves [jaffles](https://en.wikipedia.org/wiki/Pie_iron).
 
 This README will guide you through setting up the project on dbt Cloud. Working through this example should give you a good sense of how dbt Cloud works and what's involved with setting up your own project. We'll also _optionally_ cover some intermediate topics like setting up Environments and Jobs in dbt Cloud, working with a larger dataset, and setting up pre-commit hooks if you'd like.
