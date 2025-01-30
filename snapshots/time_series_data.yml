@@ -1,0 +1,9 @@
+snapshots:
+  - name: time_series_data_archive
+    relation: source('raw_time_series', 'time_series_data')
+    config:
+      schema: snapshots
+      unique_key: reference_date
+      strategy: check
+      check_cols: ["value"]
+      dbt_valid_to_current: NULL

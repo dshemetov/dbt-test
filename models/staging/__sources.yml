@@ -4,10 +4,6 @@ sources:
   - name: ecom
     schema: raw
     description: E-commerce data for the Jaffle Shop
-    freshness:
-      warn_after:
-        count: 24
-        period: hour
     tables:
       - name: raw_customers
         description: One record per person who has purchased one or more items
@@ -26,8 +22,39 @@ sources:
   # For incremental_copy.sql
   - name: raw_incremental
     schema: main # DuckDB default schema
+    freshness:
+      warn_after:
+        count: 12
+        period: hour
+      error_after:
+        count: 24
+        period: hour
+    loaded_at_field: created_at
     tables:
       - name: source_data
+        columns:
+          - name: id
+            tests:
+              - unique
+              - not_null
+          - name: value
+          - name: created_at
+            tests:
+              - not_null
+
+  - name: aws_s3
+    meta:
+      # Needs AWS credentials to the forecasting-team-data bucket, will ignore this model if not available
+      external_location: "s3://forecasting-team-data/exploration/aux_data/healthdata/g62h-syeh-2023-12-27.csv"
+    tables:
+      - name: raw_s3_data
+        description: Data from S3
+
+  - name: raw_time_series
+    schema: main
+    tables:
+      - name: time_series_data
+        description: Time series data
         columns:
           - name: id
             tests:
