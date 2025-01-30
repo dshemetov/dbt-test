@@ -134,12 +134,6 @@ dbt test
 - Marts - data that has been aggregated and rolled up (in this repo, `customers`, `orders`, etc.)
 - Snapshots - data that has been captured at a point in time (in this repo, `orders_snapshot`)
 
-### AWS S3
-
-This project includes an example of how to load data from an S3 bucket.
-See `models/staging/aws_s3.sql` for the model definition.
-There's also a macro in `macros/has_aws_credentials.sql` that is used to enable the model if AWS credentials for the forecasting-team-data bucket are available.
-
 ### Source Freshness
 
 dbt can capture the freshness of the source data and produce warnings or errors if the data is stale.
@@ -206,7 +200,50 @@ dbt run --select incremental_copy --full-refresh
 ```
 
 This can be extended to handle more complex cases, such as updating a row if the value changes, or deleting a row if it is no longer present in the source.
-See more [here](https://docs.getdbt.com/docs/build/incremental-models-overview).
+
+[Incremental models docs](https://docs.getdbt.com/docs/build/incremental-models-overview)
+
+### Python Integration
+
+dbt also supports writing Python code in models.
+See the example in `models/my_python_model.py` and `models/my_python_model.yml`.
+
+```sh
+# Install Pandas in your .venv (if you're not using uv)
+pip install pandas
+
+# To execute
+dbt run --select my_python_model
+
+# For some reason, this errors out
+dbt show --select my_python_model
+
+# This works
+./duckdb delphi_test.duckdb -c "SELECT * FROM my_python_model;"
+```
+
+The docs say that this feature is mostly intended for developer convenience and for small files.
+Anything that needs to be performant should be done in SQL.
+
+[Python models docs](https://docs.getdbt.com/docs/build/python-models)
+
+### Dagster Integration
+
+WIP. Working off [this example](https://docs.dagster.io/integrations/libraries/dbt/transform-dbt).
+
+```sh
+# Install Dagster in your .venv (if you're not using uv)
+pip install dagster plotly dagster-dbt dagster-webserver
+
+# Run the Dagster UI
+dagster dev
+```
+
+### AWS S3
+
+This project includes an example of how to load data from an S3 bucket.
+See `models/staging/aws_s3.sql` for the model definition.
+There's also a macro in `macros/has_aws_credentials.sql` that is used to enable the model if AWS credentials for the forecasting-team-data bucket are available.
 
 ### Using the Semantic Layer (optional)
 
